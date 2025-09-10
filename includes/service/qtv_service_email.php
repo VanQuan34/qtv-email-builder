@@ -85,11 +85,37 @@ class QTV_Service_Email {
             ],
         ]);
 
-        register_rest_route('qtv-email/v1', '/upload-media', [
+        register_rest_route('qtv-email/v1', '/media/upload', [
             [
                 'methods'  => 'POST',
                 'callback' =>  [$this, 'email_builder_upload_media'],
                 'permission_callback' => '__return_true',
+            ],
+        ]);
+
+        register_rest_route('qtv-email/v1', '/media/list', [
+            [
+                'methods'  => 'GET',
+                'callback' =>  [$this, 'email_builder_list_media'],
+                'permission_callback' => '__return_true',
+                'args' => array(
+                    'perpage' => array(
+                        'type' => 'integer',
+                        'default' => 10,
+                        'sanitize_callback' => 'absint',
+                        'validate_callback' => function ($param) {
+                            return $param > 0 && $param <= 100; // Giới hạn perpage từ 1 đến 100
+                        },
+                    ),
+                    'paged' => array(
+                        'type' => 'integer',
+                        'default' => 1,
+                        'sanitize_callback' => 'absint',
+                        'validate_callback' => function ($param) {
+                            return $param > 0; // Đảm bảo paged là số dương
+                        },
+                    ),
+                ),
             ],
         ]);
     }
@@ -753,6 +779,71 @@ class QTV_Service_Email {
                 ),
                 500
             );
+        }
+    }
+
+    public function email_builder_list_media(WP_REST_Request $request){
+        try {
+            // Lấy tham số từ request
+            $per_page = $request->get_param('perpage');
+            $paged = $request->get_param('paged');
+    
+            // Hàm phụ để lấy dữ liệu media với các trường yêu cầu
+            $get_media_data = function ($attachment_id) {
+                $attachment = get_post($attachment_id);
+                if (!$attachment || $attachment->post_type !== 'attachment') {
+                    return null;
+                }
+    
+                $file_url = wp_get_attachment_url($attachment_id);
+                $meta = wp_get_attachment_metadata($attachment_id);
+                $file_path = get_attached_file($attachment_id);
+                
+                $file_size_mb = $file_path && file_exists($file_path) ? round(filesize($file_path) / 1024 / 1024, 1) : 0;
+                $origin_capacity = $file_size_mb >= 1
+                    ? round($file_size_mb, 1) . ' MB'
+                    : round(filesize($file_path) / 1024 , 1) . ' KB';
+    
+                return [
+                    '_id' => (string)$attachment_id,
+                    'created_time' => get_post_meta($attachment_id, '_created_time', true) ?: get_the_date('c', $attachment_id),
+                    'filename' => basename($file_url),
+                    'mimetype' => $attachment->post_mime_type,
+                    'origin_capacity' => $origin_capacity,
+                    'origin_height' => $meta['height'] ?? 0,
+                    'origin_url' => $file_url ?: '',
+                    'origin_width' => $meta['width'] ?? 0,
+                ];
+            };
+    
+            // Lấy danh sách media với phân trang
+            $args = array(
+                'post_type' => 'attachment',
+                'post_status' => 'inherit',
+                'posts_per_page' => $per_page,
+                'paged' => $paged,
+            );
+    
+            $query = new WP_Query($args);
+            $media_items = array();
+    
+            if ($query->have_posts()) {
+                while ($query->have_posts()) {
+                    $query->the_post();
+                    $media_data = $get_media_data(get_the_ID());
+                    if ($media_data) {
+                        $media_items[] = $media_data;
+                    }
+                }
+            }
+    
+            // Reset post data
+            wp_reset_postdata();
+    
+            return $this->success($media_items);
+    
+        } catch (Exception $e) {
+            return $this->error($e->getMessage() ?: 'Lấy danh sách media thất bại', 500);
         }
     }
 
