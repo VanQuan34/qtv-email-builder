@@ -509,6 +509,9 @@ class QTV_Service_Email {
 
         // Lấy meta fields
         $meta = $this->get_meta_fields($post_id);
+        if($meta && $meta['sample'] == '1'){
+            return $this->error("Mẫu không tồn tại", 401);
+        }
         
         // $data = array_merge(
         //     [
