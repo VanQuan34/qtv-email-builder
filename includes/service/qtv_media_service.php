@@ -24,6 +24,14 @@ class QTV_Media_Service {
             ],
         ]);
 
+        register_rest_route('qtv-email/v1', '/media/file/actions/delete', [
+            [
+                'methods'  => 'POST',
+                'callback' =>  [$this, 'email_builder_delete_media'],
+                'permission_callback' => '__return_true',
+            ],
+        ]);
+
         register_rest_route('qtv-email/v1', '/media/list', [
             [
                 'methods'  => 'GET',
@@ -250,6 +258,51 @@ class QTV_Media_Service {
         } catch (Exception $e) {
             return $this->error($e->getMessage() ?: 'Lấy danh sách media thất bại', 500);
         }
+    }
+
+    public function email_builder_delete_media(WP_REST_Request $request) {
+        $urls = $request->get_param('urls');
+
+        if (empty($urls) || !is_array($urls)) {
+            return new WP_Error(
+                'invalid_param',
+                'Tham số "urls" phải là mảng và không được rỗng',
+                ['status' => 400]
+            );
+        }
+
+        $deleted = [];
+        $errors  = [];
+
+        foreach ($urls as $url) {
+            $attachment_id = attachment_url_to_postid($url);
+
+            if ($attachment_id) {
+                $result = wp_delete_attachment($attachment_id, true);
+                if ($result) {
+                    $deleted[] = [
+                        'url' => $url,
+                        'id'  => $attachment_id,
+                        'status' => 'deleted'
+                    ];
+                } else {
+                    $errors[] = [
+                        'url' => $url,
+                        'error' => 'Không xoá được attachment'
+                    ];
+                }
+            } else {
+                $errors[] = [
+                    'url' => $url,
+                    'error' => 'Không tìm thấy attachment ID'
+                ];
+            }
+        }
+
+        return [
+            'deleted' => $deleted,
+            'errors'  => $errors,
+        ];
     }
 
 }

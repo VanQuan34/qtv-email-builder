@@ -146,7 +146,6 @@ add_action('admin_menu', 'qtv_email_builder_admin_menu');
 // Trang Dashboard
 function qtv_email_manager_dashboard() {
     echo '<div class="wrap">';
-    echo '<h1>QTV Email Manager</h1>';
     echo '<div id="qtv-angular-app"><app-root></app-root></div>';// Angular sẽ mount vào đây
     echo '</div>';
 }
@@ -162,7 +161,7 @@ function angular_dashboard_embed_scripts($hook) {
     $angular_base = $plugin_url . 'angular/';
 
     // Load CSS chính (tên file CSS trong html là styles.32315f7a272f9431.css)
-    wp_enqueue_style('angular-styles', $angular_base . 'styles.6549f5f4fb2b45e0.css', array(), null);
+    wp_enqueue_style('angular-styles', $angular_base . 'styles.css', array(), null);
 
     // Load các script Angular. Lưu ý một số script có type="module" hoặc defer, WordPress wp_enqueue_script không hỗ trợ tự động kiểu này,
     // nên ta sẽ thêm thủ công qua action admin_footer nếu cần.
@@ -177,10 +176,10 @@ function angular_dashboard_embed_scripts($hook) {
     // Cách 2: Do các file này cần type="module" hoặc defer nên trực tiếp in thẻ script thủ công ở footer
     add_action('admin_footer', function() use ($angular_base) {
         echo '
-        <script type="module" src="' . esc_url($angular_base . 'runtime.ee345f70e0db82d3.js') . '"></script>
-        <script type="module" src="' . esc_url($angular_base . 'polyfills.3273e2fa85372cdc.js') . '"></script>
-        <script defer src="' . esc_url($angular_base . 'scripts.4ca2e9f12f424023.js') . '"></script>
-        <script type="module" src="' . esc_url($angular_base . 'main.47029d75eeed2a69.js') . '"></script>
+        <script type="module" src="' . esc_url($angular_base . 'runtime.js') . '"></script>
+        <script type="module" src="' . esc_url($angular_base . 'polyfills.js') . '"></script>
+        <script defer src="' . esc_url($angular_base . 'scripts.js') . '"></script>
+        <script type="module" src="' . esc_url($angular_base . 'main.js') . '"></script>
         ';
     });
 
@@ -194,7 +193,12 @@ function angular_dashboard_embed_scripts($hook) {
         echo '<script src="https://accounts.google.com/gsi/client" async defer></script>';
     });
 
-    echo '<style>
+    echo '
+    <script>
+        window.qtvEmailHost = "' . esc_js(get_site_url()) . '";
+        window.qtvEmailPluginUrl = "' . esc_js($plugin_url) . '";
+    </script>
+    <style>
       :root {
         --pri: #226FF5;
         --pri-d: #1B59C4;
