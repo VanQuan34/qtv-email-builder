@@ -84,6 +84,14 @@ class QTV_Service_Email {
                 'permission_callback' => '__return_true',
             ],
         ]);
+
+        register_rest_route('qtv-email/v1', '/posts', [
+            [
+                'methods'  => 'GET',
+                'callback' => [$this, 'get_summary_posts'],
+                'permission_callback' => '__return_true',
+            ],
+        ]);
     }
 
     public function check_permission() {
@@ -623,6 +631,69 @@ class QTV_Service_Email {
         }
 
         return $this->success(true);
+    }
+
+    public function get_summary_posts($request) {
+        try{
+        // 📌 3 bài viết mới nhất
+            $posts = get_posts([
+                'post_type'      => 'post',
+                'posts_per_page' => 3,
+                'post_status'    => 'publish'
+            ]);
+            $latest_posts = [];
+            foreach ($posts as $post) {
+                $latest_posts[] = [
+                    'id'    => $post->ID,
+                    'title' => get_the_title($post->ID),
+                    'link'  => get_permalink($post->ID),
+                    'excerpt' => wp_trim_words(get_the_excerpt($post->ID), 15, '...'),
+                    'featured_image' => get_the_post_thumbnail_url($post->ID, 'full') ?: ''
+                ];
+            }
+
+            // 📌 5 tags
+            $tags = get_terms([
+                'taxonomy'   => 'post_tag',
+                'number'     => 5,
+                'hide_empty' => true
+            ]);
+            $tags_data = [];
+            foreach ($tags as $tag) {
+                $tags_data[] = [
+                    'id'   => $tag->term_id,
+                    'name' => $tag->name,
+                    'slug' => $tag->slug,
+                    'url'  => get_term_link($tag->term_id)
+                ];
+            }
+
+            // 📌 5 categories
+            $cats = get_terms([
+                'taxonomy'   => 'category',
+                'number'     => 5,
+                'hide_empty' => true
+            ]);
+            $cats_data = [];
+            foreach ($cats as $cat) {
+                $cats_data[] = [
+                    'id'   => $cat->term_id,
+                    'name' => $cat->name,
+                    'slug' => $cat->slug,
+                    'url'  => get_term_link($cat->term_id)
+                ];
+            }
+
+            // 📌 Trả về JSON gộp
+            $data = [
+                'latest_posts' => $latest_posts,
+                'tags'         => $tags_data,
+                'categories'   => $cats_data
+            ];
+            return $this->success($data);
+        } catch(error){
+            return $this->error("Có lỗi phía server", 500, null);
+        }
     }
 
     private function save_meta_fields($post_id, $params) {

@@ -197,6 +197,8 @@ function angular_dashboard_embed_scripts($hook) {
     <script>
         window.qtvEmailHost = "' . esc_js(get_site_url()) . '";
         window.qtvEmailPluginUrl = "' . esc_js($plugin_url) . '";
+        window.qtvWoocommereceActive = ' . (is_plugin_active('woocommerce/woocommerce.php') ? 'true' : 'false') . ';
+        window.qtvLanguage = "' . esc_js(get_bloginfo('language')) . '";
     </script>
     <style>
       :root {

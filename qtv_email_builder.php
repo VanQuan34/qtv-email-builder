@@ -16,6 +16,7 @@ require_once plugin_dir_path(__FILE__) . 'includes/service/qtv_service_email.php
 require_once plugin_dir_path(__FILE__) . 'includes/service/qtv_category_service.php';
 require_once plugin_dir_path(__FILE__) . 'includes/service/qtv_media_service.php';
 require_once plugin_dir_path(__FILE__) . 'includes/service/qtv_send_test.php';
+require_once plugin_dir_path(__FILE__) . 'includes/service/qtv_woocommerce_service.php';
 
 final class QTV_Email_Builder {
 
@@ -28,6 +29,7 @@ final class QTV_Email_Builder {
         new QTV_Category_Service();
         new QTV_Media_Service();
         new QTV_SendTest_Service();
+        new QTV_Woocommerce_Service();
     }
 }
 
