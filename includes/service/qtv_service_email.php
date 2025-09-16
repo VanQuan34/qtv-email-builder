@@ -13,6 +13,17 @@ class QTV_Service_Email {
         add_action('rest_api_init', [$this, 'register_routes']);
     }
 
+    public function qtv_permission_check(){
+        if ( ! is_user_logged_in() ) {
+        return new WP_Error(
+            '401',
+            __( 'Not Logged in', 'qtv_email_builder' ),
+            [ 'status' => 401 ]
+        );
+        }
+        return true;
+    }
+
     public function register_routes() {
         register_rest_route('qtv-email/v1', '/templates', [
             [
@@ -656,7 +667,7 @@ class QTV_Service_Email {
             $tags = get_terms([
                 'taxonomy'   => 'post_tag',
                 'number'     => 5,
-                'hide_empty' => true
+                'hide_empty' => false
             ]);
             $tags_data = [];
             foreach ($tags as $tag) {
