@@ -132,16 +132,16 @@ class QTV_Email_Template {
 function qtv_email_builder_admin_menu() {
     // Menu chính
     add_menu_page(
-        'QTV Email Manager',           // Page title
+        'QTV Email Manager 2222',           // Page title
         'Email Manager',               // Menu title
         'manage_options',              // Capability
         'qtv-email-manager',           // Slug
         'qtv_email_manager_dashboard', // Callback hiển thị
         'dashicons-email-alt2',        // Icon
-        6                              // Vị trí menu
+        10                             // Vị trí menu
     );
 }
-add_action('admin_menu', 'qtv_email_builder_admin_menu');
+add_action('admin_menu', 'qtv_email_builder_admin_menu', 9999);
 
 // Trang Dashboard
 function qtv_email_manager_dashboard() {

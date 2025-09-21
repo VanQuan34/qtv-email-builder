@@ -3,6 +3,12 @@ if (!defined('ABSPATH')) {
     exit;
 }
 require_once plugin_dir_path(__FILE__) . './qtv_response_helper.php';
+require_once plugin_dir_path(__FILE__) . './qtv_category.php';
+require_once plugin_dir_path(__FILE__) . './qtv_media.php';
+require_once plugin_dir_path(__FILE__) . './qtv_send_test.php';
+require_once plugin_dir_path(__FILE__) . './qtv_wordpress.php';
+require_once plugin_dir_path(__FILE__) . './qtv_woocommerce.php';
+
 
 class QTV_Service_Email {
     use QTV_Response_Helper;
@@ -11,6 +17,11 @@ class QTV_Service_Email {
 
     public function __construct() {
         add_action('rest_api_init', [$this, 'register_routes']);
+        new QTV_Category_Service();
+        new QTV_Media_Service();
+        new QTV_SendTest_Service();
+        new QTV_Woocommerce_Service();
+        new QTV_WordPress_Service();
     }
 
     public function qtv_permission_check(){
