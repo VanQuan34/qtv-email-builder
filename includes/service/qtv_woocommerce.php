@@ -140,7 +140,7 @@ class QTV_Woocommerce_Service {
         $id = (int) $request['id'];
 
         if(!$this->is_woocommerce_active()){
-            return $this->success([]);
+            return $this->success(null);
         }
 
         if ($id === 0) {
@@ -154,19 +154,19 @@ class QTV_Woocommerce_Service {
             $latest = get_posts($args);
 
             if (empty($latest)) {
-                return $this->success([]);
+                return $this->success(null);
             }
 
             $id = $latest[0]->ID;
         }
 
         if (!$id || get_post_type($id) !== 'product') {
-            return $this->success([]);
+            return $this->success(null);
         }
 
         $product = wc_get_product($id);
         if (!$product) {
-            return $this->success([]);
+            return $this->success(null);
         }
 
         try {
@@ -174,7 +174,7 @@ class QTV_Woocommerce_Service {
                 'id' => $product->get_id(),
                 'name' => $product->get_name(),
                 'slug' => $product->get_slug(),
-                'price' => $product->get_price(),
+                'price' => wc_price($product->get_price()),
                 'regular_price' => $product->get_regular_price(),
                 'sale_price' => $product->get_sale_price(),
                 'stock_status' => $product->get_stock_status(),
@@ -311,7 +311,7 @@ class QTV_Woocommerce_Service {
             'id' => $product->get_id(),
             'name' => $product->get_name(),
             'slug' => $product->get_slug(),
-            'price' => $product->get_price(),
+            'price' => wc_price($product->get_price()),
             'regular_price' => $product->get_regular_price(),
             'sale_price' => $product->get_sale_price(),
             'stock_status' => $product->get_stock_status(),

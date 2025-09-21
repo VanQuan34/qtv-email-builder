@@ -14,6 +14,7 @@ class QTV_Service_Email {
     use QTV_Response_Helper;
 
     private $post_type = 'email_template';
+    private $taxonomy = 'template_category';
 
     public function __construct() {
         add_action('rest_api_init', [$this, 'register_routes']);
@@ -51,6 +52,14 @@ class QTV_Service_Email {
                 'methods'  => 'DELETE',
                 'callback' => [$this, 'delete_template'],
                 'permission_callback' => [$this, 'check_permission'],
+            ],
+        ]);
+
+        register_rest_route('qtv-email/v1', '/templates/favorite', [
+            [
+                'methods'  => 'PUT',
+                'callback' => [$this, 'set_template_favorite'],
+                'permission_callback' => '__return_true',
             ],
         ]);
 
@@ -505,6 +514,14 @@ class QTV_Service_Email {
 
         // Lấy meta fields
         $meta = $this->get_meta_fields($post_id);
+        // Lấy categories từ taxonomy template_category
+        $post_categories = wp_get_post_terms($post_id, $this->taxonomy, ['fields' => 'ids']);
+        if (is_wp_error($post_categories)) {
+            $post_categories = []; // Xử lý lỗi, trả về mảng rỗng
+        }
+
+        $meta['categories'] = $post_categories;
+        
         // if($meta && $meta['sample'] == '1'){
         //     return $this->error("Mẫu không tồn tại", 401);
         // }
@@ -569,6 +586,14 @@ class QTV_Service_Email {
         if (is_wp_error($post_id)) {
             // return new WP_Error('create_failed', 'Không tạo được template', ['status' => 500]);
             return $this->error("Có vấn đề khi tạo", 500);
+        }
+
+        if (!empty($params['categories']) && is_array($params['categories'])) {
+            $categories = array_map('intval', $params['categories']); // Sanitize: đảm bảo ID là số nguyên
+            $result = wp_set_post_terms($post_id, $categories, $this->taxonomy, false);
+            if (is_wp_error($result)) {
+                return $this->error("Không thể gán categories cho template", 500);
+            }
         }
 
         $this->save_meta_fields($post_id, $params);
@@ -652,6 +677,20 @@ class QTV_Service_Email {
             }
         }
 
+        return $this->success(true);
+    }
+
+    public function set_template_favorite($request){
+        $params = $request->get_json_params();
+        $temp_id = (int) $params['email_id'];
+        $is_favorite = $params['is_favorite'] ?: false;
+
+        if (is_wp_error($temp_id)) {
+            // return new WP_Error('create_failed', 'Không tạo được template', ['status' => 500]);
+            return $this->error("Có vấn đề khi tạo", 500);
+        }
+
+        $this->save_meta_fields($temp_id, $params);
         return $this->success(true);
     }
 
