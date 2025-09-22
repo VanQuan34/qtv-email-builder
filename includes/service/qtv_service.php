@@ -439,9 +439,12 @@ class QTV_Service_Email {
     }
 
     public function count_templates_by_categories(WP_REST_Request $request) {
-        $params       = $request->get_json_params();
-        $category_ids = !empty($params['category_ids']) ? array_map('intval', (array) $params['category_ids']) : [];
-        $search       = sanitize_text_field($params['search'] ?? '');
+        $body = $request->get_json_params();
+
+        $category_ids = !empty($body['category_ids']) ? array_map('intval', (array) $body['category_ids']) : [];
+        $search       = sanitize_text_field($request->get_param('search'));
+        $is_favorite = $request->get_param('is_favorite');
+        $is_favorite = ($is_favorite === 'true'); // convert sang bool
 
         if (empty($category_ids)) {
             return $this->error("Thiếu category_ids", 400);
@@ -463,31 +466,39 @@ class QTV_Service_Email {
                     ]
                 ],
                 'meta_query'     => [
-                    'relation' => 'AND',
-                    [
-                        'relation' => 'OR',
+                        'relation' => 'AND',
                         [
-                            'key'     => 'sample',
-                            'value'   => '0',
-                            'compare' => '='
+                            'relation' => 'OR',
+                            [
+                                'key'     => 'sample',
+                                'value'   => '0',
+                                'compare' => '='
+                            ],
+                            [
+                                'key'     => 'sample',
+                                'value'   => '',
+                                'compare' => '='
+                            ],
+                            [
+                                'key'     => 'sample',
+                                'compare' => 'NOT EXISTS'
+                            ],
                         ],
-                        [
-                            'key'     => 'sample',
-                            'value'   => '',
-                            'compare' => '='
-                        ],
-                        [
-                            'key'     => 'sample',
-                            'compare' => 'NOT EXISTS'
-                        ],
-                    ],
-                ]
+                    ]
 
             ];
             
 
             if (!empty($search)) {
                 $args['s'] = $search;
+            }
+
+            if ($is_favorite) {
+                $args['meta_query'][] = [
+                    'key'     => 'is_favorite',
+                    'value'   => '1',
+                    'compare' => '='
+                ];
             }
 
             $query = new WP_Query($args);
