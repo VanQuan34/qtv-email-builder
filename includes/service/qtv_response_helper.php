@@ -18,6 +18,11 @@ trait QTV_Response_Helper {
             $data = (object)[];
         }
 
+        if (!empty($message)) {
+            // Nếu muốn luôn dùng text domain
+            $message = __($message, "qtv-email-builder");
+        }
+
         return rest_ensure_response([
             'code'    => $code,
             'lang'    => $lang,
@@ -29,21 +34,21 @@ trait QTV_Response_Helper {
     /**
      * Trả về response success (200)
      */
-    protected function success($data = null, $message = "Request thành công", $lang = "vi") {
+    protected function success($data = null, $message = "Request success", $lang = "vi") {
         return $this->apiResponse($data, $message, 200, $lang);
     }
 
     /**
      * Trả về response lỗi (4xx, 5xx)
      */
-    protected function error($message = "Có lỗi xảy ra", $code = 400, $data = null, $lang = "vi") {
+    protected function error($message = "An error has occurred", $code = 400, $data = null, $lang = "vi") {
         return $this->apiResponse($data, $message, $code, $lang);
     }
 
     /**
      * Trả về lỗi 500 (Internal Server Error)
      */
-    protected function serverError($message = "Lỗi hệ thống", $data = null, $lang = "vi") {
+    protected function serverError($message = "Server error", $data = null, $lang = "vi") {
         return $this->apiResponse($data, $message, 500, $lang);
     }
 }
