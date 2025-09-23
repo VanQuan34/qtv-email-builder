@@ -58,7 +58,7 @@ class QTV_Category_Service {
         ]);
 
         if (is_wp_error($terms)) {
-            return $this->serverError("Không lấy được danh sách category");
+            return $this->serverError("Unable to get category list");
         }
 
         $data = [];
@@ -72,7 +72,7 @@ class QTV_Category_Service {
             ];
         }
 
-        return $this->success($data, "Lấy danh sách category thành công");
+        return $this->success($data, "Request success");
     }
 
     /**
@@ -83,7 +83,7 @@ class QTV_Category_Service {
 
         $name = sanitize_text_field($params['name'] ?? '');
         if (empty($name)) {
-            return $this->error("Tên category không được để trống", 400);
+            return $this->error("Category name cannot be blank", 400);
         }
 
         $result = wp_insert_term($name, $this->taxonomy, [
@@ -92,7 +92,7 @@ class QTV_Category_Service {
         ]);
 
         if (is_wp_error($result)) {
-            return $this->serverError("Không tạo được category", $result->get_error_messages());
+            return $this->serverError("Unable to create category", $result->get_error_messages());
         }
 
         return $this->get_category(['id' => $result['term_id']]);
@@ -106,7 +106,7 @@ class QTV_Category_Service {
         $term = get_term($term_id, $this->taxonomy);
 
         if (!$term || is_wp_error($term)) {
-            return $this->error("Category không tồn tại", 404);
+            return $this->error("Category does not exist", 404);
         }
 
         $data = [
@@ -117,7 +117,7 @@ class QTV_Category_Service {
             'count'       => $term->count,
         ];
 
-        return $this->success($data, "Lấy chi tiết category thành công");
+        return $this->success($data, "Request success");
     }
 
     /**
@@ -134,7 +134,7 @@ class QTV_Category_Service {
         ]);
 
         if (is_wp_error($result)) {
-            return $this->serverError("Không cập nhật được category", $result->get_error_messages());
+            return $this->serverError("Category cannot be updated.", $result->get_error_messages());
         }
 
         return $this->get_category(['id' => $term_id]);
@@ -148,9 +148,9 @@ class QTV_Category_Service {
         $result = wp_delete_term($term_id, $this->taxonomy);
 
         if (is_wp_error($result)) {
-            return $this->serverError("Không xoá được category", $result->get_error_messages());
+            return $this->serverError("Cannot delete category", $result->get_error_messages());
         }
 
-        return $this->success([], "Xoá category thành công");
+        return $this->success([], "Request success");
     }
 }

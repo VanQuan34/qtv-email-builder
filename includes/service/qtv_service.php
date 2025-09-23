@@ -326,9 +326,9 @@ class QTV_Service_Email {
             }
         
             // return rest_ensure_response($data);
-            return $this->success($data, "Request thành công");
+            return $this->success($data, "Request success");
         } catch(error){
-            return $this->error("Có lỗi phía server", 500, null);
+            return $this->error("Error server", 500, null);
         }
     }
 
@@ -447,7 +447,7 @@ class QTV_Service_Email {
         $is_favorite = ($is_favorite === 'true'); // convert sang bool
 
         if (empty($category_ids)) {
-            return $this->error("Thiếu category_ids", 400);
+            return $this->error("Missing category_ids", 400);
         }
 
         $results = [];
@@ -520,7 +520,7 @@ class QTV_Service_Email {
         $post    = get_post($post_id);
 
         if (!$post || $post->post_type !== $this->post_type) {
-            return $this->error("Mẫu không tồn tại", 404);
+            return $this->error("Template not exist.", 404);
         }
 
         // Lấy meta fields

@@ -256,7 +256,7 @@ class QTV_Media_Service {
             return $this->success($media_items);
     
         } catch (Exception $e) {
-            return $this->error($e->getMessage() ?: 'Lấy danh sách media thất bại', 500);
+            return $this->error($e->getMessage() ?: 'Getting media list failed', 500);
         }
     }
 
@@ -266,7 +266,7 @@ class QTV_Media_Service {
         if (empty($urls) || !is_array($urls)) {
             return new WP_Error(
                 'invalid_param',
-                'Tham số "urls" phải là mảng và không được rỗng',
+                'The "urls" parameter must be an array and not empty.',
                 ['status' => 400]
             );
         }
@@ -288,13 +288,13 @@ class QTV_Media_Service {
                 } else {
                     $errors[] = [
                         'url' => $url,
-                        'error' => 'Không xoá được attachment'
+                        'error' => 'Cannot delete attachment'
                     ];
                 }
             } else {
                 $errors[] = [
                     'url' => $url,
-                    'error' => 'Không tìm thấy attachment ID'
+                    'error' => 'Attachment ID not found'
                 ];
             }
         }
