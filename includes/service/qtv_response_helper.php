@@ -51,4 +51,16 @@ trait QTV_Response_Helper {
     protected function serverError($message = "Server error", $data = null, $lang = "vi") {
         return $this->apiResponse($data, $message, 500, $lang);
     }
+
+
+    public function qtv_permission_check() {
+        if (!is_user_logged_in()) {
+            return new WP_Error(
+                '401',
+                __('Not Logged in', 'qtv_email_builder'),
+                ['status' => 401]
+            );
+        }
+        return true;
+    }
 }

@@ -187,7 +187,14 @@ function angular_dashboard_embed_scripts($hook) {
     wp_enqueue_script('keymaster-min-js', $angular_base . 'assets/js/keymaster.min.js', ['jquery-min-js'], null, true);
     wp_enqueue_script('integrate-micro-sites-js', $angular_base . 'assets/js/integrate-micro-sites.min.js', [], null, true);
     wp_enqueue_script('mo-wb-core', $angular_base . 'assets/js/mo.wb.min.js', [], null, true);
-     wp_enqueue_script('mo-wb-core-ace', $angular_base . 'assets/ace/ace.js', [], null, true);
+    wp_enqueue_script('mo-wb-core-ace', $angular_base . 'assets/ace/ace.js', [], null, true);
+
+     // Gửi nonce xuống Angular
+    wp_localize_script('mo-wb-core-ace', 'qtvApi', [
+        'root'  => esc_url_raw(rest_url('qtv-email/v1')),
+        'nonce' => wp_create_nonce('wp_rest'),
+    ]);
+
     
     add_action('admin_footer', function() {
         echo '<script src="https://accounts.google.com/gsi/client" async defer></script>';

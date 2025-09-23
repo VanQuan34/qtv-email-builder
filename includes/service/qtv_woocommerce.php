@@ -19,7 +19,7 @@ class QTV_Woocommerce_Service {
             [
                 'methods'  => 'GET',
                 'callback' => [$this, 'qtv_get_latest_products'],
-                'permission_callback' => '__return_true',
+                'permission_callback' => [$this, 'qtv_permission_check'],
             ],
         ]);
 
@@ -27,7 +27,7 @@ class QTV_Woocommerce_Service {
             [
                 'methods' => 'GET',
                 'callback' => [$this, 'get_single_product'],
-                'permission_callback' => '__return_true',
+                'permission_callback' => [$this, 'qtv_permission_check'],
             ],
         ]);
 
@@ -35,7 +35,7 @@ class QTV_Woocommerce_Service {
             [
                 'methods' => 'GET',
                 'callback' => [$this, 'filter_products_by_name'],
-                'permission_callback' => '__return_true',
+                'permission_callback' => [$this, 'qtv_permission_check'],
             ],
         ]);
 
@@ -43,7 +43,7 @@ class QTV_Woocommerce_Service {
             [
                 'methods' => 'GET',
                 'callback' => [$this, 'get_product_categories'],
-                'permission_callback' => '__return_true',
+                'permission_callback' => [$this, 'qtv_permission_check'],
             ],
         ]);
 
@@ -51,7 +51,7 @@ class QTV_Woocommerce_Service {
             [
                 'methods' => 'GET',
                 'callback' => [$this, 'get_product_tags'],
-                'permission_callback' => '__return_true',
+                'permission_callback' => [$this, 'qtv_permission_check'],
             ],
         ]);
     }

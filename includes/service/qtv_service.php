@@ -25,33 +25,22 @@ class QTV_Service_Email {
         new QTV_WordPress_Service();
     }
 
-    public function qtv_permission_check(){
-        if ( ! is_user_logged_in() ) {
-        return new WP_Error(
-            '401',
-            __( 'Not Logged in', 'qtv_email_builder' ),
-            [ 'status' => 401 ]
-        );
-        }
-        return true;
-    }
-
     public function register_routes() {
         register_rest_route('qtv-email/v1', '/templates', [
             [
                 'methods'  => 'GET',
                 'callback' => [$this, 'list_templates'],
-                'permission_callback' => '__return_true',
+                'permission_callback' => [$this, 'qtv_permission_check'],
             ],
             [
                 'methods'  => 'POST',
                 'callback' => [$this, 'create_template'],
-                'permission_callback' => [$this, 'check_permission'],
+                'permission_callback' => [$this, 'qtv_permission_check'],
             ],
             [
                 'methods'  => 'DELETE',
                 'callback' => [$this, 'delete_template'],
-                'permission_callback' => [$this, 'check_permission'],
+                'permission_callback' => [$this, 'qtv_permission_check'],
             ],
         ]);
 
@@ -59,7 +48,7 @@ class QTV_Service_Email {
             [
                 'methods'  => 'PUT',
                 'callback' => [$this, 'set_template_favorite'],
-                'permission_callback' => '__return_true',
+                'permission_callback' => [$this, 'qtv_permission_check'],
             ],
         ]);
 
@@ -67,7 +56,7 @@ class QTV_Service_Email {
             [
                 'methods'  => 'GET',
                 'callback' => [$this, 'list_templates_sample'],
-                'permission_callback' => '__return_true',
+                'permission_callback' => [$this, 'qtv_permission_check'],
             ],
         ]);
 
@@ -75,12 +64,12 @@ class QTV_Service_Email {
             [
                 'methods'  => 'GET',
                 'callback' => [$this, 'get_template'],
-                'permission_callback' => '__return_true',
+                'permission_callback' => [$this, 'qtv_permission_check'],
             ],
             [
                 'methods'  => 'PUT',
                 'callback' => [$this, 'update_template'],
-                'permission_callback' => [$this, 'check_permission'],
+                'permission_callback' => [$this, 'qtv_permission_check'],
             ],
         ]);
 
@@ -88,7 +77,7 @@ class QTV_Service_Email {
             [
                 'methods'  => 'GET',
                 'callback' => [$this, 'count_templates'],
-                'permission_callback' => '__return_true',
+                'permission_callback' => [$this, 'qtv_permission_check'],
             ],
         ]);
 
@@ -96,7 +85,7 @@ class QTV_Service_Email {
             [
                 'methods'  => 'GET',
                 'callback' => [$this, 'count_templates_sample'],
-                'permission_callback' => '__return_true',
+                'permission_callback' => [$this, 'qtv_permission_check'],
             ],
         ]);
 
@@ -104,7 +93,7 @@ class QTV_Service_Email {
             [
                 'methods'  => 'GET',
                 'callback' => [$this, 'count_templates'],
-                'permission_callback' => '__return_true',
+                'permission_callback' => [$this, 'qtv_permission_check'],
             ],
         ]);
 
@@ -112,21 +101,9 @@ class QTV_Service_Email {
             [
                 'methods'  => 'POST',
                 'callback' => [$this, 'count_templates_by_categories'],
-                'permission_callback' => '__return_true',
+                'permission_callback' => [$this, 'qtv_permission_check'],
             ],
         ]);
-
-        register_rest_route('qtv-email/v1', '/posts', [
-            [
-                'methods'  => 'GET',
-                'callback' => [$this, 'get_summary_posts'],
-                'permission_callback' => '__return_true',
-            ],
-        ]);
-    }
-
-    public function check_permission() {
-        return true; //current_user_can('edit_posts');
     }
 
      /**
@@ -589,21 +566,21 @@ class QTV_Service_Email {
 
         $post_id = wp_insert_post([
             'post_type'    => $this->post_type,
-            'post_title'   => sanitize_text_field($params['title'] ?? $params['name'] ?? 'Không có tiêu đề'),
-            'post_content' => json_encode($array, JSON_UNESCAPED_UNICODE),
+            'post_title'   => sanitize_text_field($params['name'] ?? 'No title'),
+            'post_content' => '',
             'post_status'  => 'publish'
         ]);
 
         if (is_wp_error($post_id)) {
             // return new WP_Error('create_failed', 'Không tạo được template', ['status' => 500]);
-            return $this->error("Có vấn đề khi tạo", 500);
+            return $this->error("There was a problem creating", 500);
         }
 
         if (!empty($params['categories']) && is_array($params['categories'])) {
             $categories = array_map('intval', $params['categories']); // Sanitize: đảm bảo ID là số nguyên
             $result = wp_set_post_terms($post_id, $categories, $this->taxonomy, false);
             if (is_wp_error($result)) {
-                return $this->error("Không thể gán categories cho template", 500);
+                return $this->error("Unable to assign categories to template", 500);
             }
         }
 
@@ -617,7 +594,7 @@ class QTV_Service_Email {
         $params = $request->get_json_params();
 
         if (!get_post($post_id)) {
-            return new WP_Error('not_found', 'Template không tồn tại', ['status' => 404]);
+            return new WP_Error('not_found', 'Template does not exist', ['status' => 404]);
         }
 
         $html = $params['body']['body'];
@@ -641,7 +618,7 @@ class QTV_Service_Email {
         ], true);
 
         if (is_wp_error($updated_id)) {
-            return new WP_Error('update_failed', 'Không update được template', ['status' => 500]);
+            return new WP_Error('update_failed', 'Unable to update template', ['status' => 500]);
         }
 
         $this->save_meta_fields($post_id, $params);
@@ -653,13 +630,13 @@ class QTV_Service_Email {
         $ids_param = sanitize_text_field($request['ids'] ?? '');
 
         if (!get_post($ids_param)) {
-            return $this->error("Template không tồn tại", 400);
+            return $this->error("Template does not exist", 400);
         }
 
         $ids = array_filter(array_map('intval', explode(',', $ids_param)));
 
         if (empty($ids)) {
-            return $this->error("Template không tồn tại", 400);
+            return $this->error("Template does not exist", 400);
         }
 
         $deleted = [];
@@ -671,7 +648,7 @@ class QTV_Service_Email {
             if (!$post || $post->post_type !== $this->post_type) {
                 $errors[] = [
                     'id'    => $post_id,
-                    'error' => 'Template không tồn tại hoặc không đúng post_type'
+                    'error' => __('Template does not exist or has incorrect post_type', 'qtv-email-builder')
                 ];
                 continue;
             }
@@ -683,7 +660,7 @@ class QTV_Service_Email {
             } else {
                 $errors[] = [
                     'id'    => $post_id,
-                    'error' => 'Không thể xóa template'
+                    'error' => __('Templates cannot be deleted', 'qtv-email-builder')
                 ];
             }
         }
@@ -698,74 +675,11 @@ class QTV_Service_Email {
 
         if (is_wp_error($temp_id)) {
             // return new WP_Error('create_failed', 'Không tạo được template', ['status' => 500]);
-            return $this->error("Có vấn đề khi tạo", 500);
+            return $this->error("Server error", 500);
         }
 
         $this->save_meta_fields($temp_id, $params);
         return $this->success(true);
-    }
-
-    public function get_summary_posts($request) {
-        try{
-        // 📌 3 bài viết mới nhất
-            $posts = get_posts([
-                'post_type'      => 'post',
-                'posts_per_page' => 3,
-                'post_status'    => 'publish'
-            ]);
-            $latest_posts = [];
-            foreach ($posts as $post) {
-                $latest_posts[] = [
-                    'id'    => $post->ID,
-                    'title' => get_the_title($post->ID),
-                    'link'  => get_permalink($post->ID),
-                    'excerpt' => wp_trim_words(get_the_excerpt($post->ID), 15, '...'),
-                    'featured_image' => get_the_post_thumbnail_url($post->ID, 'full') ?: ''
-                ];
-            }
-
-            // 📌 5 tags
-            $tags = get_terms([
-                'taxonomy'   => 'post_tag',
-                'number'     => 5,
-                'hide_empty' => false
-            ]);
-            $tags_data = [];
-            foreach ($tags as $tag) {
-                $tags_data[] = [
-                    'id'   => $tag->term_id,
-                    'name' => $tag->name,
-                    'slug' => $tag->slug,
-                    'url'  => get_term_link($tag->term_id)
-                ];
-            }
-
-            // 📌 5 categories
-            $cats = get_terms([
-                'taxonomy'   => 'category',
-                'number'     => 5,
-                'hide_empty' => true
-            ]);
-            $cats_data = [];
-            foreach ($cats as $cat) {
-                $cats_data[] = [
-                    'id'   => $cat->term_id,
-                    'name' => $cat->name,
-                    'slug' => $cat->slug,
-                    'url'  => get_term_link($cat->term_id)
-                ];
-            }
-
-            // 📌 Trả về JSON gộp
-            $data = [
-                'latest_posts' => $latest_posts,
-                'tags'         => $tags_data,
-                'categories'   => $cats_data
-            ];
-            return $this->success($data);
-        } catch(error){
-            return $this->error("Có lỗi phía server", 500, null);
-        }
     }
 
     private function save_meta_fields($post_id, $params) {
