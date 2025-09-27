@@ -6,7 +6,7 @@ require_once plugin_dir_path(__FILE__) . './qtv_response_helper.php';
 class QTV_Category_Service {
     use QTV_Response_Helper;
 
-    private $taxonomy = 'template_category';
+    private $taxonomy = 'qtv_template_category';
 
     public function __construct() {
         add_action('rest_api_init', [$this, 'register_routes']);

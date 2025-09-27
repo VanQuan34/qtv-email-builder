@@ -5,13 +5,14 @@ if (!defined('ABSPATH')) {
 
 class QTV_Email_Template {
 
-    private $post_type = 'email_template';
-    private $taxonomy = 'template_category';
+    private $post_type = 'qtv_email_template';
+    private $taxonomy = 'qtv_template_category';
 
     public function __construct() {
         add_action('init', [$this, 'register_cpt']);
         add_action('init', [$this, 'register_meta_fields']);
         add_action('init', [$this, 'register_taxonomy']);
+        add_action('init', [$this, 'register_shortcode']);
     }
 
     /**
@@ -19,25 +20,25 @@ class QTV_Email_Template {
      */
     public function register_cpt() {
         $labels = array(
-            'name'               => 'Email Templates',
-            'singular_name'      => 'Email Template',
-            'menu_name'          => 'Email Templates',
-            'name_admin_bar'     => 'Email Template',
-            'add_new'            => 'Thêm mới',
-            'add_new_item'       => 'Thêm Email Template',
-            'new_item'           => 'Email Template mới',
-            'edit_item'          => 'Sửa Email Template',
-            'view_item'          => 'Xem Email Template',
-            'all_items'          => 'Tất cả Email Templates',
-            'search_items'       => 'Tìm Email Template',
-            'not_found'          => 'Không tìm thấy',
-            'not_found_in_trash' => 'Không có trong thùng rác'
+            'name'               => __('Email Templates', 'qtv-email-builder'),
+            'singular_name'      => __('Email Template', 'qtv-email-builder'),
+            'menu_name'          => __('Email Templates', 'qtv-email-builder'),
+            'name_admin_bar'     => __('Email Template', 'qtv-email-builder'),
+            'add_new'            => __('Add New', 'qtv-email-builder'),
+            'add_new_item'       => __('Add New Email Template', 'qtv-email-builder'),
+            'new_item'           => __('New Email Template', 'qtv-email-builder'),
+            'edit_item'          => __('Edit Email Template', 'qtv-email-builder'),
+            'view_item'          => __('View Email Template', 'qtv-email-builder'),
+            'all_items'          => __('All Email Templates', 'qtv-email-builder'),
+            'search_items'       => __('Search Email Templates', 'qtv-email-builder'),
+            'not_found'          => __('Not found', 'qtv-email-builder'),
+            'not_found_in_trash' => __('Not found in Trash', 'qtv-email-builder'),
         );
 
         $args = array(
             'labels'             => $labels,
             'public'             => true,
-            'show_in_menu'       => true,
+            'show_in_menu'       => false,
             'supports'           => array('title', 'editor'),
             'menu_icon'          => 'dashicons-email',
             'has_archive'        => true,
@@ -57,13 +58,13 @@ class QTV_Email_Template {
             "created_by",
             "created_time",
             "description",
-            "template_id",   // tránh trùng "id" với post ID
+            "template_id",
             "is_favorite",
             "merchant_id",
             "name",
             "session",
             "small_thumbnail",
-            "status_code",   // tránh trùng "status" của WP
+            "status_code",
             "thumbnail",
             "sample",
             "email_content",
@@ -81,7 +82,6 @@ class QTV_Email_Template {
             ]);
         }
 
-        // Nếu bạn muốn lưu toàn bộ JSON gốc
         register_post_meta($this->post_type, '_raw_json', [
             'type'              => 'string',
             'single'            => true,
@@ -94,17 +94,17 @@ class QTV_Email_Template {
      */
     public function register_taxonomy() {
         $labels = [
-            'name'              => _x('Categories', 'taxonomy general name', 'qtv'),
-            'singular_name'     => _x('Category', 'taxonomy singular name', 'qtv'),
-            'search_items'      => __('Search Categories', 'qtv'),
-            'all_items'         => __('All Categories', 'qtv'),
-            'parent_item'       => __('Parent Category', 'qtv'),
-            'parent_item_colon' => __('Parent Category:', 'qtv'),
-            'edit_item'         => __('Edit Category', 'qtv'),
-            'update_item'       => __('Update Category', 'qtv'),
-            'add_new_item'      => __('Add New Category', 'qtv'),
-            'new_item_name'     => __('New Category Name', 'qtv'),
-            'menu_name'         => __('Categories', 'qtv'),
+            'name'              => _x('Categories', 'taxonomy general name', 'qtv-email-builder'),
+            'singular_name'     => _x('Category', 'taxonomy singular name', 'qtv-email-builder'),
+            'search_items'      => __('Search Categories', 'qtv-email-builder'),
+            'all_items'         => __('All Categories', 'qtv-email-builder'),
+            'parent_item'       => __('Parent Category', 'qtv-email-builder'),
+            'parent_item_colon' => __('Parent Category:', 'qtv-email-builder'),
+            'edit_item'         => __('Edit Category', 'qtv-email-builder'),
+            'update_item'       => __('Update Category', 'qtv-email-builder'),
+            'add_new_item'      => __('Add New Category', 'qtv-email-builder'),
+            'new_item_name'     => __('New Category Name', 'qtv-email-builder'),
+            'menu_name'         => __('Categories', 'qtv-email-builder'),
         ];
 
         $args = [
@@ -118,36 +118,103 @@ class QTV_Email_Template {
         ];
 
         register_taxonomy($this->taxonomy, [$this->post_type], $args);
-        if (!term_exists('Uncategorized', $this->taxonomy)) {
-        wp_insert_term('Uncategorized', $this->taxonomy, [
-            'slug' => 'uncategorized',
-            'description' => 'Danh mục mặc định cho template'
-        ]);
     }
+
+    function register_shortcode(){
+        add_shortcode('qtv_email_builder', [$this, 'qtv_add_shortcode_email']);
+    }
+
+    function qtv_add_shortcode_email($atts){
+        $atts = shortcode_atts([
+            'template_id' => '',
+            'use_iframe'  => '1'
+        ], $atts);
+
+        $template_id = $atts['template_id'];
+        $use_iframe  = $atts['use_iframe'];
+        if (empty($template_id)) {
+            return '<p style="color:red;">Missing template_id in shortcode.</p>';
+        }
+
+        $args = [
+            'post_type'      => $this->post_type,
+            'post_status'    => 'publish',
+            'meta_query'     => [
+                [
+                    'key'   => 'template_id',
+                    'value' => $template_id,
+                    'compare' => '='
+                ]
+            ],
+            'posts_per_page' => 1
+        ];
+
+        $query = new WP_Query($args);
+
+        if ($query->have_posts()) {
+            $query->the_post();
+            
+            // Lấy meta field email_content
+            $email_content = get_post_meta(get_the_ID(), 'email_content', true);
+
+            wp_reset_postdata();
+
+            if (!empty($email_content)) {
+
+                if ($use_iframe === '0') {
+                    return $email_content;
+                }
+
+                $iframe_id = 'qtv_iframe_' . uniqid();
+                $iframe = '<iframe id="' . $iframe_id . '" 
+                        style="width:100%;min-height:500px;border:0;"
+                        srcdoc="' . esc_attr($email_content) . '">
+                    </iframe>
+                    
+                    <script>
+                        document.addEventListener("DOMContentLoaded", function() {
+                            var iframe = document.getElementById("' . $iframe_id . '");
+                            if (iframe) {
+                                iframe.onload = function() {
+                                    try {
+                                        var doc = iframe.contentWindow.document;
+                                        var height = doc.body.scrollHeight || doc.documentElement.scrollHeight;
+                                        iframe.style.height = height + 30 + "px";
+                                    } catch (e) {
+                                        console.error("Không thể truy cập nội dung iframe:", e);
+                                    }
+                                };
+                            }
+                        });
+                    </script>';
+
+                return $iframe;
+            } else {
+                return '<p style="color:red;">Not found meta "email_content".</p>';
+            }
+        } else {
+            return '<p style="color:red;">Template with template_id not found: ' . esc_html($template_id) . '</p>';
+        }
     }
 }
 
-
-// Tạo menu admin riêng
 function qtv_email_builder_admin_menu() {
     // Menu chính
     add_menu_page(
-        'QTV Email Manager 2222',           // Page title
-        'Email Manager',               // Menu title
+        'Email Builder',           // Page title
+        'Email Builder',               // Menu title
         'manage_options',              // Capability
         'qtv-email-manager',           // Slug
         'qtv_email_manager_dashboard', // Callback hiển thị
-        'dashicons-email-alt2',        // Icon
+        'dashicons-email',        // Icon
         10                             // Vị trí menu
     );
 }
 add_action('admin_menu', 'qtv_email_builder_admin_menu', 9999);
 
-// Trang Dashboard
 function qtv_email_manager_dashboard() {
     echo '<div class="wrap">';
-    echo '<div id="qtv-angular-app"><app-root></app-root></div>';// Angular sẽ mount vào đây
-    echo '</div>';
+    echo '<div id="qtv-angular-app"><app-root></app-root></div>';
 }
 
 add_action('admin_enqueue_scripts', 'angular_dashboard_embed_scripts');
@@ -159,21 +226,8 @@ function angular_dashboard_embed_scripts($hook) {
     
     $plugin_url = plugin_dir_url(__FILE__);
     $angular_base = $plugin_url . 'angular/';
-
-    // Load CSS chính (tên file CSS trong html là styles.32315f7a272f9431.css)
+    
     wp_enqueue_style('angular-styles', $angular_base . 'styles.css', array(), null);
-
-    // Load các script Angular. Lưu ý một số script có type="module" hoặc defer, WordPress wp_enqueue_script không hỗ trợ tự động kiểu này,
-    // nên ta sẽ thêm thủ công qua action admin_footer nếu cần.
-
-    // Cách 1: Load script bình thường (không đúng type module)
-    // wp_enqueue_script('angular-runtime', $angular_base . 'runtime.6b24981b3a9500e0.js', array(), null, true);
-    // wp_enqueue_script('angular-polyfills', $angular_base . 'polyfills.5b55ffc9d42aa9d8.js', array(), null, true);
-    // wp_enqueue_script('angular-scripts', $angular_base . 'scripts.d1fe2b413193d73a.js', array(), null, true);
-    // wp_enqueue_script('angular-vendor', $angular_base . 'vendor.ba1475e8a122a7ee.js', array(), null, true);
-    // wp_enqueue_script('angular-main', $angular_base . 'main.2816dd690577b5a9.js', array(), null, true);
-
-    // Cách 2: Do các file này cần type="module" hoặc defer nên trực tiếp in thẻ script thủ công ở footer
     add_action('admin_footer', function() use ($angular_base) {
         echo '
         <script type="module" src="' . esc_url($angular_base . 'runtime.js') . '"></script>
@@ -279,35 +333,4 @@ function angular_dashboard_embed_scripts($hook) {
         --trans: transparent;
       }
     </style>';
-}
-
-
-// Hook vào khi tạo admin menu
-add_action('add_meta_boxes', 'mobio_add_template_meta_box');
-
-function mobio_add_template_meta_box() {
-    add_meta_box(
-        'mobio_template_meta',              // ID của meta box
-        'Template Meta Fields',             // Tiêu đề hiển thị
-        'mobio_render_template_meta_box',   // Callback render nội dung
-        'email_template',                   // Post type
-        'normal',                           // Vị trí (normal, side, advanced)
-        'high'                              // Độ ưu tiên
-    );
-}
-
-// Hàm render nội dung trong meta box
-function mobio_render_template_meta_box($post) {
-    // Lấy meta đã lưu
-    $meta_fields = get_post_meta($post->ID);
-
-    echo '<table class="form-table">';
-    foreach ($meta_fields as $key => $values) {
-        if (strpos($key, '_') === 0) continue; // bỏ qua key system (_edit_lock,...)
-        echo '<tr>';
-        echo '<th style="width:150px; text-align:left;">' . esc_html($key) . '</th>';
-        echo '<td>' . esc_html(is_array($values) ? implode(', ', $values) : $values) . '</td>';
-        echo '</tr>';
-    }
-    echo '</table>';
 }

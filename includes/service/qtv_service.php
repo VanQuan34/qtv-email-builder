@@ -13,8 +13,8 @@ require_once plugin_dir_path(__FILE__) . './qtv_woocommerce.php';
 class QTV_Service_Email {
     use QTV_Response_Helper;
 
-    private $post_type = 'email_template';
-    private $taxonomy = 'template_category';
+    private $post_type = 'qtv_email_template';
+    private $taxonomy = 'qtv_template_category';
 
     public function __construct() {
         add_action('rest_api_init', [$this, 'register_routes']);
@@ -182,7 +182,7 @@ class QTV_Service_Email {
             if (!empty($categories)) {
                 $args['tax_query'] = [
                     [
-                        'taxonomy' => 'template_category',
+                        'taxonomy' => $this->taxonomy,
                         'field'    => 'term_id',
                         'terms'    =>  $categories,
                         'operator' => 'IN',
@@ -203,6 +203,12 @@ class QTV_Service_Email {
                         $meta['content'] = $decoded;
                     }
                 }
+
+                $terms = wp_get_post_terms($post->ID, $this->taxonomy);
+
+                $terms = wp_get_post_terms($post->ID, $this->taxonomy, ['fields' => 'ids']);
+                $categoryIds = !is_wp_error($terms) ? $terms : [];
+                $meta['categories'] = !is_wp_error($terms) ? $terms : [];
         
                 // base fields
                 $item = [
@@ -356,7 +362,7 @@ class QTV_Service_Email {
         if (!empty($category)) {
             $args['tax_query'] = [
                 [
-                    'taxonomy' => 'template_category',
+                    'taxonomy' => $this->taxonomy,
                     'field'    => 'slug',
                     'terms'    => $category,
                 ]
@@ -437,7 +443,7 @@ class QTV_Service_Email {
                 'posts_per_page' => -1,
                 'tax_query'      => [
                     [
-                        'taxonomy' => 'template_category',
+                        'taxonomy' => $this->taxonomy,
                         'field'    => 'term_id',
                         'terms'    => $cat_id,
                     ]
@@ -489,32 +495,25 @@ class QTV_Service_Email {
         return $this->success($results);
     }
 
-    
-
-    public function get_template($request) {
-
-        $post_id = (int)$request['id'];
-        $post    = get_post($post_id);
+    // Hàm build data chung
+    private function build_template_data($post_id) {
+        $post = get_post($post_id);
 
         if (!$post || $post->post_type !== $this->post_type) {
-            return $this->error("Template not exist.", 404);
+            return new WP_Error("not_found", "Template not exist.", ['status' => 404]);
         }
 
-        // Lấy meta fields
         $meta = $this->get_meta_fields($post_id);
-        // Lấy categories từ taxonomy template_category
+
         $post_categories = wp_get_post_terms($post_id, $this->taxonomy, ['fields' => 'ids']);
         if (is_wp_error($post_categories)) {
-            $post_categories = []; // Xử lý lỗi, trả về mảng rỗng
+            $post_categories = [];
         }
 
         $meta['categories'] = $post_categories;
-        
-        // if($meta && $meta['sample'] == '1'){
-        //     return $this->error("Mẫu không tồn tại", 401);
-        // }
-        
-        // Gom chung data giống list_templates
+        $meta['status'] = 1;
+        $meta['is_favorite'] = (int) $meta['is_favorite'];
+
         $data = array_merge(
             [
                 'id'      => $post->ID,
@@ -540,7 +539,17 @@ class QTV_Service_Email {
             $meta
         );
 
+        return $data;
+    }
 
+
+    public function get_template($request) {
+        $post_id = (int)$request['id'];
+        $data = $this->build_template_data($post_id);
+
+        if (is_wp_error($data)) {
+            return $this->error($data->get_error_message(), $data->get_error_data()['status'] ?? 404);
+        }
         return $this->success($data);
     }
 
@@ -597,33 +606,55 @@ class QTV_Service_Email {
             return new WP_Error('not_found', 'Template does not exist', ['status' => 404]);
         }
 
-        $html = $params['body']['body'];
-        $style = $params['body']['style'];
-        $data = $params['body']['data'];
+        $body = $params['body'];
+        if(!empty($body)){
+            $html = $body['body'];
+            $style = $body['style'];
+            $data = $body['data'];
 
-        $params['email_content'] = wp_slash($html);
-        $params['style'] = wp_slash($style);
-        $params['email_data'] = wp_slash(json_encode($data, JSON_UNESCAPED_UNICODE));
-
-        $array = [
-            "body" => $html,
-            "style" => $style,
-            "data" => $data
-        ];
-
-        $updated_id = wp_update_post([
-            'ID'           => $post_id,
-            'post_title'   => sanitize_text_field($params['title'] ?? $params['name'] ?? ''),
-            'post_content' => json_encode($array, JSON_UNESCAPED_UNICODE),
-        ], true);
-
-        if (is_wp_error($updated_id)) {
-            return new WP_Error('update_failed', 'Unable to update template', ['status' => 500]);
+            $params['email_content'] = wp_slash($html);
+            $params['style'] = wp_slash($style);
+            $params['email_data'] = wp_slash(json_encode($data, JSON_UNESCAPED_UNICODE));
         }
+
+        $name = $params['name'];
+        if(!empty($name)){
+            $updated_id = wp_update_post([
+                'ID'           => $post_id,
+                'post_title'   => sanitize_text_field($params['name'] ?? ''),
+                'post_content' => '',
+            ], true);
+
+            if (is_wp_error($updated_id)) {
+                return new WP_Error('update_failed', 'Unable to update template', ['status' => 500]);
+            }
+        }
+
+        if (!empty($params['categories']) && is_array($params['categories'])) {
+            $categories = array_map('intval', $params['categories']);
+            $result = wp_set_post_terms($post_id, $categories, $this->taxonomy, false);
+
+            if (is_wp_error($result)) {
+                return $this->error("Unable to assign categories to template", 500);
+            }
+        } elseif (is_array($params['categories']) && empty($params['categories'])) {
+            $result = wp_set_post_terms($post_id, [], $this->taxonomy, false);
+
+            if (is_wp_error($result)) {
+                return $this->error("Unable to remove categories from template", 500);
+            }
+        }
+        
 
         $this->save_meta_fields($post_id, $params);
 
-        return $this->get_template(['id' => $post_id]);
+        $data = $this->build_template_data($post_id);
+        if (is_wp_error($data)) {
+            return new WP_Error('update_failed', 'Unable to update template', ['status' => 500]);
+        }
+        $data['code'] = 200;
+        $data['message'] = 'Request success';
+        return $data;
     }
 
     public function delete_template($request) {
@@ -694,7 +725,7 @@ class QTV_Service_Email {
             "name",
             "session",
             "small_thumbnail",
-            "status_code",
+            "status",
             "thumbnail",
             'sample',
             'email_content',
@@ -723,7 +754,7 @@ class QTV_Service_Email {
         $fields = [
             "categories","created_by","created_time","description","template_id",
             "is_favorite","merchant_id","name","session","small_thumbnail",
-            "status_code","thumbnail","updated_time", "sample", "email_content", 'style', "email_data", "_raw_json"
+            "status","thumbnail","updated_time", "sample", "email_content", 'style', "email_data", "_raw_json"
         ];
         $meta = [];
         foreach ($fields as $f) {
