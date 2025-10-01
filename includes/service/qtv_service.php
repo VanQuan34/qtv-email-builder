@@ -513,6 +513,14 @@ class QTV_Service_Email {
         $meta['categories'] = $post_categories;
         $meta['status'] = 1;
         $meta['is_favorite'] = (int) $meta['is_favorite'];
+        if (!isset($meta['count'])) {
+            $meta['count'] = 0;
+        }
+
+        $new_meta = [
+            'count'=> (int) $meta['count'] + 1
+        ];
+        $this->save_meta_fields($post_id, $new_meta);
 
         $data = array_merge(
             [
@@ -731,6 +739,7 @@ class QTV_Service_Email {
             'email_content',
             'style',
             'email_data',
+            'count',
             "updated_time"
         ];
 
@@ -754,7 +763,7 @@ class QTV_Service_Email {
         $fields = [
             "categories","created_by","created_time","description","template_id",
             "is_favorite","merchant_id","name","session","small_thumbnail",
-            "status","thumbnail","updated_time", "sample", "email_content", 'style', "email_data", "_raw_json"
+            "status","thumbnail","updated_time", "sample", "email_content", 'style', "email_data", "count", "_raw_json"
         ];
         $meta = [];
         foreach ($fields as $f) {

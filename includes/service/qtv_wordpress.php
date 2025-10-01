@@ -5,7 +5,7 @@ require_once plugin_dir_path(__FILE__) . './qtv_response_helper.php';
 
 class QTV_WordPress_Service {
     use QTV_Response_Helper;
-
+    private $post_type = 'qtv_email_template';
 
     public function __construct() {
         add_action('rest_api_init', [$this, 'register_routes']);
@@ -30,13 +30,21 @@ class QTV_WordPress_Service {
                 'permission_callback' => [$this, 'qtv_permission_check'],
             ],
         ]);
+
+        register_rest_route('qtv-email/v1', '/top-templates', [
+            [
+                'methods'  => 'GET',
+                'callback' =>  [$this, 'get_top_templates'],
+                'permission_callback' => [$this, 'qtv_permission_check'],
+            ]
+        ]);
     }
 
-        public function get_summary_posts($request) {
+    public function get_summary_posts($request) {
         try{
         // 📌 3 bài viết mới nhất
             $posts = get_posts([
-                'post_type'      => 'post',
+                'post_type'      => $this->post_type,
                 'posts_per_page' => 3,
                 'post_status'    => 'publish'
             ]);
@@ -93,6 +101,32 @@ class QTV_WordPress_Service {
         } catch(error){
             return $this->error("Error server", 500, null);
         }
+    }
+
+   public static function get_top_templates(WP_REST_Request $request) {
+        $args = [
+            'post_type'      => 'qtv_email_template',
+            'posts_per_page' => 5,
+            'meta_key'       => 'count',
+            'orderby'        => 'meta_value_num',
+            'order'          => 'DESC',
+        ];
+
+        $query = new WP_Query($args);
+        $posts = [];
+
+        if ($query->have_posts()) {
+            foreach ($query->posts as $post) {
+                $posts[] = [
+                    'id'    => $post->ID,
+                    'title' => get_the_title($post->ID),
+                    'count' => (int) get_post_meta($post->ID, 'count', true),
+                    'link'  => get_permalink($post->ID),
+                ];
+            }
+        }
+
+        return new WP_REST_Response($posts, 200);
     }
 
 }

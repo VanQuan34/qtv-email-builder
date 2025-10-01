@@ -1,0 +1,15 @@
+.button-primary:hover {
+    background-color: #4338ca !important;
+    border-color: #4338ca !important;
+}
+
+section>div:hover {
+    box-shadow: 0 6px 25px rgba(0, 0, 0, 0.15);
+}
+
+@media (max-width: 768px) {
+    section {
+        flex-direction: column !important;
+        align-items: center !important;
+    }
+}
